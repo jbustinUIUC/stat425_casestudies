@@ -1,0 +1,122 @@
+---
+title: "Stat 425 Case Study 1"
+author: "Carrie, Charlie, Jack, Jessie"
+date: "2022-10-08"
+output: pdf_document
+---
+
+```{r Loading Data & Libraries}
+# Libraries
+library(tidyverse)
+
+# Load Data & Name Columns
+data <- read_table("CDI.txt", col_names = FALSE)
+
+data <- data %>%
+  rename(id = X1,
+         county = X2,
+         state = X3,
+         land_area = X4,
+         total_pop = X5,
+         pop_18to24 = X6,
+         pop_over65 = X7,
+         num_physicians = X8,
+         num_hospital_beds = X9,
+         serious_crimes = X10,
+         highschool_rate = X11,
+         bachelors_rate = X12,
+         poverty_rate = X13,
+         unemployment_rate = X14,
+         per_capita_income = X15,
+         total_personal_income = X16,
+         region = X17)
+```
+
+
+```{r EDA}
+# Check Variable Types
+str(data)
+
+# Check for NA's and INF's
+complete_rows <- data[complete.cases(data), ]
+nrow(data) == nrow(complete_rows)
+
+# Change region type because it is not numeric
+data <- data %>%
+  mutate(region = as.factor(region))
+
+# Check correlation for numeric features
+data %>%
+  select(-id, -county, -state, -region) %>%
+  cor()
+
+# We have 4 variables highly correlated with total_pop so will transform them to per 100,000 people for 2 (one is our target so we will leave that alone)
+# Will drop total income because we already have per capita
+# We can also drop the ID column
+model_data <- data %>%
+  select(-id, -total_personal_income) %>%
+  mutate(hospital_beds_percap = num_hospital_beds / (total_pop / 100000),
+         serious_crimes_percap = serious_crimes / (total_pop / 100000)) %>%
+  select(-num_hospital_beds, -serious_crimes)
+
+# Check county levels
+model_data %>%
+  group_by(county) %>%
+  summarise(counts = n()) %>%
+  summarise(min = min(counts), max(counts))
+
+# Drop Counties and check states
+model_data <- model_data %>%
+  select(-county)
+
+model_data %>%
+  group_by(state) %>%
+  summarise(counts = n()) %>%
+  arrange(counts) %>%
+  head()
+
+# Drop States and we will use regions
+model_data <- model_data %>%
+  select(-state)
+
+# Recheck correlation
+model_data %>%
+  select(-region) %>%
+  cor()
+
+# Highly correlated pairs:
+# pop_18to24 & pop_over65
+# high_school_rate & bachelors_rate
+# high_school_rate & poverty_rate
+# bachelors_rate & per_capita_income
+# per_capita_rate & poverty_rate
+# physicians_percap & total_pop - yay! heavy hitter for the target
+
+# Predicting that we should drop high_school because bachelors is more important
+```
+
+```{r Full Model Build}
+# Start by just looking at total_pop for fun
+slr_model <- lm(num_physicians~total_pop, data = model_data)
+
+summary(slr_model)
+
+# Full Model
+mlr_full_model <- lm(num_physicians~., data = model_data)
+
+summary(mlr_full_model)
+```
+
+```{r Testing Based Model Selection}
+# Remove some fields based on EDA and full model summary
+sub1_data <- model_data %>%
+  select(-pop_over65, -unemployment_rate, -highschool_rate)
+
+mlr_sub1_model <- lm(num_physicians~., data = sub1_data)
+
+anova(mlr_sub1_model, mlr_full_model)
+```
+
+```{r Diagnostics}
+
+```
