@@ -84,6 +84,8 @@ model_data %>%
   select(-region) %>%
   cor()
 
+# We should reevaluate here, in lecture she said to worry about over .7 or .75 so a few of these pairs can be ignored
+
 # Highly correlated pairs:
 # pop_18to24 & pop_over65
 # high_school_rate & bachelors_rate
@@ -118,5 +120,6 @@ anova(mlr_sub1_model, mlr_full_model)
 ```
 
 ```{r Diagnostics}
+# I had copied and pasted some code in this section but had not evaluated output and then I forgot to save, whooops
 
 ```
