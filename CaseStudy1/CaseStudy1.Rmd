@@ -1,6 +1,6 @@
 ---
 title: "Stat 425 Case Study 1"
-author: "Carrie, Charlie, Jack, Jessie"
+author: "Carrie Mecca, Charlie Marcou, Jack, Jessie Bustin"
 date: "2022-10-08"
 output: pdf_document
 ---
@@ -8,6 +8,7 @@ output: pdf_document
 ```{r Loading Data & Libraries}
 # Libraries
 library(tidyverse)
+library(faraway)
 
 # Load Data & Name Columns
 data <- read_table("CDI.txt", col_names = FALSE)
@@ -84,6 +85,11 @@ model_data %>%
   select(-region) %>%
   cor()
 
+## Let's also look at a scattermatrix for correlation
+model_data %>% 
+  select(-region) %>%
+  pairs()
+
 # We should reevaluate here, in lecture she said to worry about over .7 or .75 so a few of these pairs can be ignored
 
 # Highly correlated pairs:
@@ -119,7 +125,101 @@ mlr_sub1_model <- lm(num_physicians~., data = sub1_data)
 anova(mlr_sub1_model, mlr_full_model)
 ```
 
-```{r Diagnostics}
-# I had copied and pasted some code in this section but had not evaluated output and then I forgot to save, whooops
+```{r Leverages}
+## Checking high-leverage points
 
+leverages=lm.influence(mlr_sub1_model)$hat
+head(leverages)
+
+## Plot to help identify high leverage observations
+halfnorm(leverages, nlab=6, labs=as.character(1:length(leverages)), ylab="Leverages")
+
+## Determining leverages that exceed a 2p/n threshold
+n = dim(model_data)[1]
+p = length(variable.names(mlr_sub1_model))
+leverages.high = leverages[leverages>(2*p/n)]
+leverages.high
+
+## We currently have many high leverage points (29), They represent only about 6.6% of the data.
+
+## Before continuing, let us look at what high leverage points are good and bad
+
+## Calculate IQR for number of physicians 
+IQR_y = IQR(model_data$num_physicians)
+
+## Define range with its lower limit being (Q1 - IQR) and upper limit being (Q3 + IQR) 
+QT1_y = quantile(model_data$num_physicians,0.25)
+QT3_y = quantile(model_data$num_physicians,0.75)
+
+lower_lim_y = QT1_y - IQR_y
+upper_lim_y = QT3_y + IQR_y
+
+vector_lim_y = c(lower_lim_y,upper_lim_y)
+
+## Range for number of physicians
+vector_lim_y
+
+## Extract observations with high leverage points from the original data frame 
+highlev = model_data[leverages>2*p/n,]
+
+## Select only the observations with leverage points outside the range 
+highlev_lower = highlev[highlev$num_physicians < vector_lim_y[1], ]
+highlev_upper = highlev[highlev$num_physicians > vector_lim_y[2], ]
+highlev2 = rbind(highlev_lower,highlev_upper)
+
+## This is not outputting the observation number like her example did. It is probably because we're using a tibble. If someone wants to troubleshoot this that would be great. I will take another look later - Charlie
+highlev2
+```
+
+
+```{r outliers}
+## Computing Studentized Residuals 
+mlr_sub1_model.resid = rstudent(mlr_sub1_model); 
+
+## Critical value with Bonferroni correction 
+## Note: Compare to t-value later at the alpha we choose
+bonferroni_cv = qt(.05/(2*n), n-p-1) 
+bonferroni_cv
+
+## Sorting residuals to find outliers
+mlr_sub1_model.resid.sorted = sort(abs(mlr_sub1_model.resid), decreasing=TRUE)[1:10]
+print(mlr_sub1_model.resid.sorted)
+
+## Printing those above the value
+## We can see observations 50, 67, 48, 19, 8, 53, and 11 are outliers. 
+mlr_sub1_model.outliers = mlr_sub1_model.resid.sorted[abs(mlr_sub1_model.resid.sorted) > abs(bonferroni_cv)]
+print(mlr_sub1_model.outliers)
+```
+
+
+```{r influence}
+## Finding high cook's distance observations
+mlr_sub1_model.cooks = cooks.distance(mlr_sub1_model)
+sort(mlr_sub1_model.cooks, decreasing = TRUE)[1:10]
+
+## Plotting cook's distance
+plot(mlr_sub1_model.cooks)
+
+## Some observations have high cook's distance relative to other observations, but none have cook's d > 1
+```
+
+
+```{r model assumptions}
+
+## Checking Constant Variance
+plot(mlr_sub1_model, which=1)
+
+library(lmtest)
+bptest(mlr_sub1_model)
+
+## Constant Variance seems to be violated
+
+## Checking Normality
+plot(mlr_sub1_model, which=2)
+hist(mlr_sub1_model$residuals)
+
+ks.test(mlr_sub1_model$residuals) ## We want the k-s test because we have more than 50 observations, but the same syntax as the shapiro-wilk test does not work here. I couldn't find any example syntax for this test within her notes/slides.
+
+
+## Next step is to check linearity of each variable
 ```
