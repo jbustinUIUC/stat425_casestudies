@@ -176,7 +176,8 @@ bptest(mlr_sub1_model)
 ## Checking Normality
 plot(mlr_sub1_model, which=2)
 hist(mlr_sub1_model$residuals)
-ks.test(mlr_sub1_model$residuals) ## We want the k-s test because we have more than 50 observations, but the same syntax as the shapiro-wilk test does not work here. I couldn't find any example syntax for this test within her notes/slides.
+### We can use the KS test to assess normality because n>50. 
+ks.test(mlr_sub1_model$residuals, 'pnorm')  ## We may want to check that this is the right syntax for this since she didn't have any examples using the ks test
 ## Next step is to check linearity of each variable
 ```
 
@@ -206,3 +207,11 @@ for (var in predictors) {
 
 
 ```
+```{r}
+## Next Steps
+## Address constant variance concerns + normality
+## Assess/Address colinearity (this could be what is causing constant variance + normality issues)
+## Finalize Model
+## Write up results
+```
+
