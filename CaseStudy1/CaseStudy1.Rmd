@@ -1,6 +1,6 @@
 ---
 title: "Stat 425 Case Study 1"
-author: "Carrie Mecca, Charlie Marcou, Jack, Jessie Bustin"
+author: "Carrie Mecca, Charlie Marcou, Jack Hanley, Jessie Bustin"
 date: "2022-10-08"
 output: pdf_document
 ---
@@ -35,74 +35,149 @@ data <- data %>%
 ```{r EDA}
 # Check Variable Types
 str(data)
+
 # Check for NA's and INF's
 complete_rows <- data[complete.cases(data), ]
 nrow(data) == nrow(complete_rows)
+
 # Change region type because it is not numeric
 data <- data %>%
   mutate(region = as.factor(region))
+
 # Check correlation for numeric features
 data %>%
-  select(-id, -county, -state, -region) %>%
-  cor()
+  dplyr::select(-id, -county, -state, -region) %>%
+  cor() %>%
+  round(digits = 2)
+
 # We have 4 variables highly correlated with total_pop so will transform them to per 100,000 people for 2 (one is our target so we will leave that alone)
 # Will drop total income because we already have per capita
 # We can also drop the ID column
-model_data <- data.frame(data %>%
-  select(-id, -total_personal_income) %>%
+model_data <- data %>%
+  dplyr::select(-id, -total_personal_income) %>%
   mutate(hospital_beds_percap = num_hospital_beds / (total_pop / 100000),
          serious_crimes_percap = serious_crimes / (total_pop / 100000)) %>%
-  select(-num_hospital_beds, -serious_crimes))
+  dplyr::select(-num_hospital_beds, -serious_crimes)
+
 # Check county levels
 model_data %>%
   group_by(county) %>%
   summarise(counts = n()) %>%
   summarise(min = min(counts), max(counts))
+
 # Drop Counties and check states
 model_data <- model_data %>%
-  select(-county)
+  dplyr::select(-county)
+
 model_data %>%
   group_by(state) %>%
   summarise(counts = n()) %>%
   arrange(counts) %>%
   head()
+
 # Drop States and we will use regions
 model_data <- model_data %>%
-  select(-state)
+  dplyr::select(-state)
+
 # Recheck correlation
 model_data %>%
-  select(-region) %>%
-  cor()
+  dplyr::select(-region) %>%
+  cor() %>%
+  round(digits = 2)
+  
 ## Let's also look at a scattermatrix for correlation
 model_data %>% 
-  select(-region) %>%
+  dplyr::select(-region) %>%
   pairs()
-# We should reevaluate here, in lecture she said to worry about over .7 or .75 so a few of these pairs can be ignored
-# Highly correlated pairs:
-# pop_18to24 & pop_over65
+
+# With a cutoff of 0.75 we have no highly correlated pairs other than population and our target
+
+# With a cutoff of 0.7 we have the 2 following pairs:
 # high_school_rate & bachelors_rate
-# high_school_rate & poverty_rate
 # bachelors_rate & per_capita_income
-# per_capita_rate & poverty_rate
-# physicians_percap & total_pop - yay! heavy hitter for the target
-# Predicting that we should drop high_school because bachelors is more important
+
+# We are dropping bachelors and high school below so no issues
+```
+
+```{r Univariate EDA}
+# Let's look at each variable and the target graphically
+# Need a log transformation on land_area
+model_data %>% ggplot(aes(x = log(land_area), y = log(num_physicians))) +
+  geom_point() 
+
+# log of total_pop will do wonders!!!
+model_data %>% ggplot(aes(x = log(total_pop), y = log(num_physicians))) +
+  geom_point() 
+
+# looks ok as is 
+model_data %>% ggplot(aes(x = pop_18to24, y = log(num_physicians))) +
+  geom_point() 
+
+# looks ok as is
+model_data %>% ggplot(aes(x = pop_over65, y = log(num_physicians))) +
+  geom_point() 
+
+# looks ok as is - tried 1/x, x + x^2, sqrt and log but non look better
+model_data %>% ggplot(aes(x = highschool_rate, y = log(num_physicians))) +
+  geom_point() 
+
+# looks ok as is but log looks better
+model_data %>% ggplot(aes(x = log(bachelors_rate), y = log(num_physicians))) +
+  geom_point() 
+
+# looks ok as is
+model_data %>% ggplot(aes(x = poverty_rate, y = log(num_physicians))) +
+  geom_point() 
+
+# looks ok as is
+model_data %>% ggplot(aes(x = unemployment_rate, y = log(num_physicians))) +
+  geom_point() 
+
+# looks ok as is but log is better
+model_data %>% ggplot(aes(x = log(per_capita_income), y = log(num_physicians))) +
+  geom_point() 
+
+# log helps!
+model_data %>% ggplot(aes(x = log(hospital_beds_percap), y = log(num_physicians))) +
+  geom_point() 
+
+# looks ok as is but log is better
+model_data %>% ggplot(aes(x = log(serious_crimes_percap), y = log(num_physicians))) +
+  geom_point() 
+
+# log transformations based on above EDA
+transformed_data <- model_data %>%
+  mutate(log_physicians = log(num_physicians),
+         log_pop = log(total_pop),
+         log_land = log(land_area),
+         log_bachelors = log(bachelors_rate),
+         log_percap_income = log(per_capita_income),
+         log_hospital_beds = log(hospital_beds_percap),
+         log_crimes = log(serious_crimes_percap)) %>%
+  dplyr::select(-c(num_physicians, total_pop, land_area, bachelors_rate, per_capita_income,
+            hospital_beds_percap, serious_crimes_percap))
 ```
 
 ```{r Full Model Build}
 # Start by just looking at total_pop for fun
-slr_model <- lm(num_physicians~total_pop, data = model_data)
+slr_model <- lm(log_physicians~log_pop, data = transformed_data)
 summary(slr_model)
 # Full Model
-mlr_full_model <- lm(num_physicians~., data = model_data)
+mlr_full_model <- lm(log_physicians~., data = transformed_data)
 summary(mlr_full_model)
 ```
 
 ```{r Testing Based Model Selection}
 # Remove some fields based on EDA and full model summary
-sub1_data <- model_data %>%
-  select(-pop_over65, -unemployment_rate, -highschool_rate)
-mlr_sub1_model <- lm(num_physicians~., data = sub1_data)
+# The final group here was chosen based on EDA, p-values, and trial and error
+sub1_data <- transformed_data %>%
+  dplyr::select(-highschool_rate, -log_crimes, -log_land)
+mlr_sub1_model <- lm(log_physicians~., data = sub1_data)
+summary(mlr_sub1_model)
 anova(mlr_sub1_model, mlr_full_model)
+
+# Adding a test for slr model vs full to show the the slr is rejected
+anova(slr_model, mlr_full_model)
 ```
 
 ```{r Leverages}
@@ -129,13 +204,14 @@ vector_lim_y = c(lower_lim_y,upper_lim_y)
 ## Range for number of physicians
 vector_lim_y
 ## Extract observations with high leverage points from the original data frame 
-highlev = model_data[leverages>2*p/n,]
+highlev = data[leverages>2*p/n,]
 ## Select only the observations with leverage points outside the range 
 highlev_lower = highlev[highlev$num_physicians < vector_lim_y[1], ]
 highlev_upper = highlev[highlev$num_physicians > vector_lim_y[2], ]
 highlev2 = rbind(highlev_lower,highlev_upper)
 ## This is not outputting the observation number like her example did. It is probably because we're using a tibble. If someone wants to troubleshoot this that would be great. I will take another look later - Charlie
-##I switched model_data to be a dataframe which I believe solves this issue-Carrie
+##I switched model_data to be a dataframe which I believe solves this issue-Carrie -- changed back because model_data was a dataframe already but when it was passed in to the function it was adding back the index column and then the index column was getting passed into the model -- instead we can use the original data before we subset to the desired columns
+
 highlev2
 ```
 
@@ -183,12 +259,13 @@ ks.test(mlr_sub1_model$residuals, 'pnorm')  ## We may want to check that this is
 
 
 ```{r variable linearity}
+sub1_data <- data.frame(sub1_data)
+
 checkLinearity <- function(var) {
   var_idx = which( colnames(sub1_data)==var )
-
   y.var = update(mlr_sub1_model, .~. -c(var_idx))$res
   #remove response + the variable itself 
-  x.var = lm(sub1_data[,var_idx] ~ . ,sub1_data[,-c(var_idx,4)])$res
+  x.var = lm(sub1_data[,var_idx] ~ . ,sub1_data[,-c(6)])$res
   
   plot(x.var, y.var, xlab=paste(var," Residuals"), ylab="Num Physicians Residuals",   col='Darkblue', pch=3)
   abline(lm(y.var ~ x.var), col='Darkblue', lwd=2)
@@ -197,14 +274,11 @@ checkLinearity <- function(var) {
 }
 predictors = names(sub1_data)
 #remove the response variable (and region since it's a factor (?))
-predictors = predictors[!(predictors %in% c("num_physicians","region"))]
-
+predictors = predictors[!(predictors %in% c("log_physicians","region"))]
 #check linearity for each predictor
 for (var in predictors) {
   checkLinearity(var)
 }
-
-
 
 ```
 ```{r}
@@ -213,5 +287,40 @@ for (var in predictors) {
 ## Assess/Address colinearity (this could be what is causing constant variance + normality issues)
 ## Finalize Model
 ## Write up results
+```
+
+```{r Log Linear Transformation}
+# log transform target - Didn't help
+sub2_data <- sub1_data %>%
+  mutate(log_physicians = log(num_physicians))
+mlr_sub2_model <- lm(log_physicians~., data = sub2_data)
+
+# Checking Box Cox
+library(MASS)
+physician.transformation = boxcox(mlr_sub1_model, lambda=seq(-2,2, length=400))
+
+lambda <- physician.transformation$x[which.max(physician.transformation$y)]
+lambda
+
+# Using 0.1 for box cox - Didn't help
+lambda <- 0.1
+sub2_data <- sub1_data %>%
+  mutate(boxcox_physicians = (num_physicians^lambda - 1)/ lambda)
+mlr_sub2_model <- lm(boxcox_physicians~., data = sub2_data)
+
+## Checking Constant Variance
+plot(mlr_sub2_model, which=1)
+library(lmtest)
+bptest(mlr_sub2_model)
+## Constant Variance seems to be violated
+## Checking Normality
+plot(mlr_sub2_model, which=2)
+hist(mlr_sub2_model$residuals)
+### We can use the KS test to assess normality because n>50. 
+ks.test(mlr_sub2_model$residuals, 'pnorm')
+```
+
+```{r Log Log Transformation}
+
 ```
 
