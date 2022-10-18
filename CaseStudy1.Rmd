@@ -199,7 +199,7 @@ checkLinearity <- function(var) {
   x.var = lm(sub1_data[,var_idx] ~ . ,sub1_data[,-c(var_idx,4)])$res
   
   plot(x.var, y.var, xlab=paste(var," Residuals"), ylab="Num Physicians Residuals",   col='Darkblue', pch=3)
-  abline(lm(y.var ~ x.var), col='Darkblue', lwd=2)
+  abline(lm(y.var ~ x.var), col='Darkblue', lwd=2,xlim = c(quantile(x.var,.005),quantile(x.var,.995)))
   abline(v = 0, col="red", lty=3)
   abline(h = 0, col="red", lty=3)
 }
@@ -408,7 +408,7 @@ checkLinearity <- function(var) {
   #remove response + the variable itself 
   x.var = lm(sub1_data[,var_idx] ~ . ,sub1_data[,-c(6)])$res
   
-  plot(x.var, y.var, xlab=paste(var," Residuals"), ylab="Num Physicians Residuals",   col='Darkblue', pch=3)
+  plot(x.var, y.var, xlab=paste(var," Residuals"), ylab="Num Physicians Residuals",   col='Darkblue', pch=3,xlim = c(quantile(x.var,.005),quantile(x.var,.995)))
   abline(lm(y.var ~ x.var), col='Darkblue', lwd=2)
   abline(v = 0, col="red", lty=3)
   abline(h = 0, col="red", lty=3)
