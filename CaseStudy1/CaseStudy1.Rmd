@@ -428,8 +428,22 @@ for (var in predictors) {
 ```{r checking collinearity}
 
 ## Checking VIF
-vif(mlr_sub1_model) #log_bachelors and log_percap_income are kind of concerning to me, but are not greater than her rule of thumb which is 10 - CM
+round(vif(mlr_sub1_model),3) #log_bachelors and log_percap_income are kind of concerning to me, but are not greater than her rule of thumb which is 10. If we really want we can test them out, but the condition number looks good. - Charlie
 
+## Grabbing design matrix
+x = model.matrix(mlr_sub1_model)[,-1]
+
+## Standardize the matrix
+x = x - matrix(apply(x,2, mean), 440,11, byrow=TRUE)
+x = x / matrix(apply(x, 2, sd), 440,11, byrow=TRUE)
+
+
+## Compute the eigenvalues of the matrix
+eigenvalues.x = eigen(t(x) %*% x) 
+eigenvalues.x$val
+
+## Compute Condition Number
+sqrt(eigenvalues.x$val[1]/eigenvalues.x$val[8]) ## Is less than 30, looks good.
 ```
 
 
