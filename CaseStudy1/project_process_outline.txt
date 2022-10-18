@@ -1,0 +1,20 @@
+The process for the project so far:
+
+1) Verify Data Structure, look for missingness, and name variables
+2) Check corr for numeric variables
+3) Transform predictors Highly correlated with total population (to per 100,000 people),
+   drop total income (linear combo of population and percapita)
+4) Check categorical variables for groups with low frequency (dropped county and state and kept region)
+5) Build slr with total population (was a heavy hitter)
+6) Build full model
+7) Using EDA, p-values, and trial and error found a subset model that is not rejected
+8) Test slr vs full and reject slr
+9) Model Diagnostics - No high Cook's D but high leverage, bad high leverage, and outlier points, 
+   fails homoscedacticity and normality
+10) Tried Log linear - Doesn't help
+11) Tried Box Cox - lambda is about 0.1, lambda of 0 is log linear and tried that already but 0 was
+                    not in the 95% CI for lambda, tried 0.1 but it didn't help either
+12) Manually evaluated plots and corr for each predictor (full model) and made transformations 
+13) Reperformed model selection
+14) diagnostics - down to 3 bad high leverage, 2 outliers and 0 high cook's D, plots look homoscedastic
+                  and bell shaped but hypothesis tests still reject normality and homoscedasticity
