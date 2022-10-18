@@ -361,10 +361,12 @@ highlev2
 ```{r outliers v2}
 ## Computing Studentized Residuals 
 mlr_sub1_model.resid = rstudent(mlr_sub1_model); 
+
 ## Critical value with Bonferroni correction 
 ## Note: Compare to t-value later at the alpha we choose
 bonferroni_cv = qt(.05/(2*n), n-p-1) 
 bonferroni_cv
+
 ## Sorting residuals to find outliers
 mlr_sub1_model.resid.sorted = sort(abs(mlr_sub1_model.resid), decreasing=TRUE)[1:10]
 print(mlr_sub1_model.resid.sorted)
@@ -389,7 +391,7 @@ plot(mlr_sub1_model.cooks)
 plot(mlr_sub1_model, which=1)
 bptest(mlr_sub1_model)
 
-## Constant Variance seems to be violated
+## Constant Variance seems to be violated based on p-value, the plot looks OK though
 ## Checking Normality
 plot(mlr_sub1_model, which=2)
 hist(mlr_sub1_model$residuals)
@@ -422,6 +424,14 @@ for (var in predictors) {
 }
 
 ```
+
+```{r checking collinearity}
+
+## Checking VIF
+vif(mlr_sub1_model) #log_bachelors and log_percap_income are kind of concerning to me, but are not greater than her rule of thumb which is 10 - CM
+
+```
+
 
 <<<<<<< HEAD
 =======
