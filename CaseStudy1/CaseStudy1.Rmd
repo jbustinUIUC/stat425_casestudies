@@ -1,7 +1,7 @@
 ---
 title: "Stat 425 Case Study 1"
 author: "Carrie Mecca, Charlie Marcou, Jack Hanley, Jessie Bustin"
-date: "2022-10-08"
+date: "`r Sys.Date()`"
 output: pdf_document
 ---
 
@@ -9,6 +9,9 @@ output: pdf_document
 # Libraries
 library(tidyverse)
 library(faraway)
+library(lmtest)
+library(MASS)
+
 # Load Data & Name Columns
 data <- read_table("CDI.txt", col_names = FALSE)
 data <- data %>%
@@ -246,8 +249,8 @@ plot(mlr_sub1_model.cooks)
 ```{r model assumptions}
 ## Checking Constant Variance
 plot(mlr_sub1_model, which=1)
-library(lmtest)
 bptest(mlr_sub1_model)
+
 ## Constant Variance seems to be violated
 ## Checking Normality
 plot(mlr_sub1_model, which=2)
@@ -296,7 +299,6 @@ sub2_data <- sub1_data %>%
 mlr_sub2_model <- lm(log_physicians~., data = sub2_data)
 
 # Checking Box Cox
-library(MASS)
 physician.transformation = boxcox(mlr_sub1_model, lambda=seq(-2,2, length=400))
 
 lambda <- physician.transformation$x[which.max(physician.transformation$y)]
@@ -310,7 +312,6 @@ mlr_sub2_model <- lm(boxcox_physicians~., data = sub2_data)
 
 ## Checking Constant Variance
 plot(mlr_sub2_model, which=1)
-library(lmtest)
 bptest(mlr_sub2_model)
 ## Constant Variance seems to be violated
 ## Checking Normality
