@@ -447,39 +447,3 @@ sqrt(eigenvalues.x$val[1]/eigenvalues.x$val[8]) ## Is less than 30, looks good.
 ```
 
 
-<<<<<<< HEAD
-=======
-```{r Log Linear Transformation}
-# log transform target - Didn't help
-sub2_data <- sub1_data %>%
-  mutate(log_physicians = log(num_physicians))
-mlr_sub2_model <- lm(log_physicians~., data = sub2_data)
-
-# Checking Box Cox
-physician.transformation = boxcox(mlr_sub1_model, lambda=seq(-2,2, length=400))
-
-lambda <- physician.transformation$x[which.max(physician.transformation$y)]
-lambda
-
-# Using 0.1 for box cox - Didn't help
-lambda <- 0.1
-sub2_data <- sub1_data %>%
-  mutate(boxcox_physicians = (num_physicians^lambda - 1)/ lambda)
-mlr_sub2_model <- lm(boxcox_physicians~., data = sub2_data)
-
-## Checking Constant Variance
-plot(mlr_sub2_model, which=1)
-bptest(mlr_sub2_model)
-## Constant Variance seems to be violated
-## Checking Normality
-plot(mlr_sub2_model, which=2)
-hist(mlr_sub2_model$residuals)
-### We can use the KS test to assess normality because n>50. 
-ks.test(mlr_sub2_model$residuals, 'pnorm')
-```
-
-```{r Log Log Transformation}
-
-```
->>>>>>> 8743247fadc5e7862f134e5c3e882eae473f2c70
-
