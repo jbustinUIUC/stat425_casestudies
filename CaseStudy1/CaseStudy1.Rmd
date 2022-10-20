@@ -112,7 +112,13 @@ summary(mlr_full_model)
 # Remove some fields based on EDA and full model summary
 sub1_data <- model_data %>%
   dplyr::select(-pop_over65, -unemployment_rate, -highschool_rate)
+
+# Build subset model
 mlr_sub1_model <- lm(num_physicians~., data = sub1_data)
+summary(mlr_sub1_model)
+
+# Partial F test for slr v full as well as subset v full
+anova(slr_model, mlr_full_model)
 anova(mlr_sub1_model, mlr_full_model)
 ```
 
@@ -152,7 +158,7 @@ highlev2
 
 ```{r outliers v1}
 ## Computing Studentized Residuals 
-mlr_sub1_model.resid = rstudent(mlr_sub1_model); 
+mlr_sub1_model.resid = rstudent(mlr_sub1_model)
 ## Critical value with Bonferroni correction 
 ## Note: Compare to t-value later at the alpha we choose
 bonferroni_cv = qt(.05/(2*n), n-p-1) 
@@ -172,7 +178,7 @@ print(mlr_sub1_model.outliers)
 mlr_sub1_model.cooks = cooks.distance(mlr_sub1_model)
 sort(mlr_sub1_model.cooks, decreasing = TRUE)[1:10]
 ## Plotting cook's distance
-plot(mlr_sub1_model.cooks)
+plot(mlr_sub1_model.cooks, main = "Cook's D For Subset Model 3", xlab = "Observation Number", ylab = "Cook's D")
 ## Some observations have high cook's distance relative to other observations, but none have cook's d > 1
 ```
 
@@ -381,7 +387,7 @@ print(mlr_sub1_model.outliers)
 mlr_sub1_model.cooks = cooks.distance(mlr_sub1_model)
 sort(mlr_sub1_model.cooks, decreasing = TRUE)[1:10]
 ## Plotting cook's distance
-plot(mlr_sub1_model.cooks)
+plot(mlr_sub1_model.cooks, main = "Cook's D For Transformed Subset Model 5", xlab = "Observation Number", ylab = "Cook's D")
 ## Some observations have high cook's distance relative to other observations, but none have cook's d > 1
 ```
 
@@ -445,5 +451,4 @@ eigenvalues.x$val
 ## Compute Condition Number
 sqrt(eigenvalues.x$val[1]/eigenvalues.x$val[8]) ## Is less than 30, looks good.
 ```
-
 
