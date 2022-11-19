@@ -1,0 +1,8 @@
+---
+title: "Stat 425 Case Study 2"
+author: "Jessie, Carrie, Charlie"
+date: "2022-11-19"
+output: html_document
+---
+
+Case Study 2
