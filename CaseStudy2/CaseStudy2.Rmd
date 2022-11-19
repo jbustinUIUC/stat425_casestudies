@@ -5,4 +5,76 @@ date: "2022-11-19"
 output: html_document
 ---
 
-Case Study 2
+## Case Study 2
+
+```{r}
+# Load Libraries
+library(tidyverse)
+library(leaps)
+library(pls)
+library(MASS)
+library(lars)
+
+# Load Data
+crime <- read_table("crime.txt")
+
+# Check For NA's and INF's
+complete_rows <- crime[complete.cases(crime), ]
+nrow(crime) == nrow(complete_rows)
+
+# Convert factor col
+crime <- crime %>%
+  mutate(So = as.factor(So))
+
+#make this example reproducible
+set.seed(425)
+
+# Train Test Split
+sample <- sample(c(TRUE, FALSE), nrow(crime), replace=TRUE, prob=c(0.7, 0.3))
+train <- crime[sample, ]
+test <- crime[!sample, ]
+```
+
+```{r}
+# Run leaps and bounds
+subset_selection = regsubsets(Crime~., data = train)
+
+rs = summary(subset_selection)
+rs$bic #Model 1
+rs #Po1 and Intercept Only Model
+
+model <- lm(Crime~Po1, data = train)
+
+summary(model)
+```
+
+```{r}
+train <- train %>%
+  mutate(So = as.numeric(So))
+test <- test %>%
+  mutate(So = as.numeric(So))
+
+pcrcv <- pcr(Crime~., data = train, validation = "CV", ncomp = 15)
+
+pcrCV <- RMSEP(pcrcv, estimate="CV")
+
+plot(pcrCV)
+
+which.min(pcrCV$val) #8 components chosen by lowest CV RMSE
+```
+
+```{r}
+# Choosing LASSO because it performs model selection
+train.y <- train$Crime
+train.x <- as.matrix(train[,-16])
+
+lasso <- lars(train.x, train.y)
+
+cv.ml <- cv.lars(train.x,train.y)
+
+svm <- cv.ml$index[which.min(cv.ml$cv)]
+
+plot(lasso)
+
+predict(lasso, s=svm, type="coef", mode="fraction")$coef
+```
