@@ -1,0 +1,52 @@
+---
+title: "HW 8"
+author: "Charlie, Carrie, Jessie"
+date: "`r Sys.Date()`"
+output: pdf_document
+---
+
+##1) 
+```{r 1}
+# Reading Transformed Data In From CS1
+read.csv("sub1_data")
+
+# Setting Seed
+set.seed(425)
+
+# Train Test Split
+sample <- sample(c(TRUE, FALSE), nrow(sub1_data), replace=TRUE, prob=c(0.7, 0.3))
+train <- sub1_data[sample, ]
+test <- sub1_data[!sample, ]
+```
+
+##2) 
+```{r 1}
+#Creatting model using training data
+cs1_model<-lm(log_physicians ~ ., data=train)
+
+#Creating function to calculate RMSE
+rmse<-function(x,y) sqrt(mean((x-y)^2))
+
+#Train MSE
+rmse(fitted(cs1_model), train$log_physicians)
+
+#Test MSE
+rmse(predict(cs1_model, test), test$log_physicians)
+
+```
+
+
+
+```{r cars}
+summary(cars)
+```
+
+## Including Plots
+
+You can also embed plots, for example:
+
+```{r pressure, echo=FALSE}
+plot(pressure)
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.

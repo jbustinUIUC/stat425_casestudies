@@ -1,7 +1,7 @@
 ---
 title: "Stat 425 Case Study 2"
 author: "Jessie, Carrie, Charlie"
-date: "2022-11-19"
+date: "`r Sys.Date()`"
 output: html_document
 ---
 
