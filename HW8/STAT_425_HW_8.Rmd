@@ -5,6 +5,13 @@ date: "`r Sys.Date()`"
 output: pdf_document
 ---
 
+```{r libraries}
+library(tidyverse)
+library(readr)
+library(leaps)
+```
+
+
 ##1) 
 ```{r 1}
 # Reading Transformed Data In From CS1
@@ -36,4 +43,142 @@ rmse(predict(cs1_model, test), test$log_physicians)
 ```
 
 
+##3)
+
+```{r}
+## We need to now look at the original untransformed data, with all variables
+
+## We will reimport and redo some of the EDA steps we performed in Case Study 1
+data <- read_table("CDI.txt", col_names = FALSE)
+data <- data %>%
+  rename(id = X1,
+         county = X2,
+         state = X3,
+         land_area = X4,
+         total_pop = X5,
+         pop_18to24 = X6,
+         pop_over65 = X7,
+         num_physicians = X8,
+         num_hospital_beds = X9,
+         serious_crimes = X10,
+         highschool_rate = X11,
+         bachelors_rate = X12,
+         poverty_rate = X13,
+         unemployment_rate = X14,
+         per_capita_income = X15,
+         total_personal_income = X16,
+         region = X17)
+
+##
+# Check Variable Types
+str(data)
+
+# Check for NA's and INF's
+complete_rows <- data[complete.cases(data), ]
+nrow(data) == nrow(complete_rows)
+
+# Change region type because it is not numeric
+data <- data %>%
+  mutate(region = as.factor(region))
+
+# Check Variable Types
+str(data)
+
+# Check for NA's and INF's
+complete_rows <- data[complete.cases(data), ]
+nrow(data) == nrow(complete_rows)
+
+# Change region type because it is not numeric
+data <- data %>%
+  mutate(region = as.factor(region))
+
+# Check correlation for numeric features
+data %>%
+  dplyr::select(-id, -county, -state, -region) %>%
+  cor() %>%
+  round(digits = 2)
+
+# We have 4 variables highly correlated with total_pop so will transform them to per 100,000 people for 2 (one is our target so we will leave that alone)
+# Will drop total income because we already have per capita
+# We can also drop the ID column
+model_data <- data.frame(data %>%
+  dplyr::select(-id, -total_personal_income) %>%
+  mutate(hospital_beds_percap = num_hospital_beds / (total_pop / 100000),
+         serious_crimes_percap = serious_crimes / (total_pop / 100000)) %>%
+  dplyr::select(-num_hospital_beds, -serious_crimes))
+
+# Check county levels
+model_data %>%
+  group_by(county) %>%
+  summarise(counts = n()) %>%
+  summarise(min = min(counts), max(counts))
+
+# Drop Counties and check states
+model_data <- model_data %>%
+  dplyr::select(-county)
+model_data %>%
+  group_by(state) %>%
+  summarise(counts = n()) %>%
+  arrange(counts) %>%
+  head()
+
+# Drop States and we will use regions
+model_data <- model_data %>%
+  dplyr::select(-state)
+
+# Recheck correlation
+model_data %>%
+  dplyr::select(-region) %>%
+  cor() %>%
+  round(digits = 2)
+
+# Train Test Split
+sample <- sample(c(TRUE, FALSE), nrow(model_data), replace=TRUE, prob=c(0.7, 0.3))
+model_train <- model_data[sample, ]
+model_test <- model_data[!sample, ]
+```
+
+```{r}
+##Now we can actually do the selection
+
+regsubsets_selection=regsubsets(num_physicians~., data = model_train)
+rs = summary(regsubsets_selection)
+
+# Adjusted-R2, 7th is best
+rs$adjr2
+
+# BIC, 8th is best
+# Note that Leaps does not calculate AIC.
+rs$bic
+
+#We will compute AIC and BIC by hand
+n=dim(model_data)[1]
+msize = 1:8
+
+AIC = n*log(rs$rss/n) + 2*msize;
+which.min(AIC) #7 is best
+BIC = n*log(rs$rss/n) + msize*log(n);
+which.min(BIC) #8 is best
+
+par(mfrow=c(2,2))
+plot(msize, rs$adjr2, xlab="No. of Parameters", ylab = "Adjusted Rsquare");
+plot(msize, rs$cp, xlab="No. of Parameters", ylab = "Mallow's Cp");
+plot(msize, AIC, xlab="No. of Parameters", ylab = "AIC");
+plot(msize, BIC, xlab="No. of Parameters", ylab = "BIC");
+
+#Determining which variables to keep based
+#Because both Adjusted R2 and BIC suggested 8 variables, we will choose 8 variables
+rs$which[8,]
+
+select.var = colnames(rs$which)[rs$which[8,]]
+
+select.var = select.var[-1]
+
+
+#fitting model
+##I beleive this is breaking due to the way our levels for region are set up. I'll take another look later unless someone else wants to.
+fit = lm(num_physicians ~ . , data=model_train[, c(select.var, "num_physicians")])
+
+
+```
 
