@@ -46,6 +46,11 @@ rs #Po1 and Intercept Only Model
 model <- lm(Crime~Po1, data = train)
 
 summary(model)
+
+# Define RMSE function
+rmse <- function(x,y) sqrt(mean((x-y)^2))
+
+
 ```
 
 ```{r}
@@ -61,6 +66,9 @@ pcrCV <- RMSEP(pcrcv, estimate="CV")
 plot(pcrCV)
 
 which.min(pcrCV$val) #8 components chosen by lowest CV RMSE
+
+# Get test RMSE
+rmse(predict(pcrCV, test, ncom = 4), test$Crime) 
 ```
 
 ```{r}
