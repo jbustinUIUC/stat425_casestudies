@@ -147,18 +147,18 @@ rs = summary(regsubsets_selection)
 # Adjusted-R2, 7th is best
 rs$adjr2
 
-# BIC, 8th is best
+# BIC, 7th is best
 # Note that Leaps does not calculate AIC.
 rs$bic
 
 #We will compute AIC and BIC by hand
-n=dim(model_data)[1]
+n=dim(model_train)[1]
 msize = 1:8
 
 AIC = n*log(rs$rss/n) + 2*msize;
 which.min(AIC) #7 is best
 BIC = n*log(rs$rss/n) + msize*log(n);
-which.min(BIC) #8 is best
+which.min(BIC) #6 is best
 
 par(mfrow=c(2,2))
 plot(msize, rs$adjr2, xlab="No. of Parameters", ylab = "Adjusted Rsquare");
@@ -167,10 +167,10 @@ plot(msize, AIC, xlab="No. of Parameters", ylab = "AIC");
 plot(msize, BIC, xlab="No. of Parameters", ylab = "BIC");
 
 #Determining which variables to keep based
-#Because both Adjusted R2 and BIC suggested 8 variables, we will choose 8 variables
-rs$which[8,]
+#Because both Adjusted R2 and AIC suggested 7 variables, we will choose 7 variables
+rs$which[7,]
 
-select.var = colnames(rs$which)[rs$which[8,]]
+select.var = colnames(rs$which)[rs$which[7,]]
 
 select.var = select.var[-1]
 
@@ -185,13 +185,11 @@ criteria_fit <- lm(num_physicians ~ . , data=model_train[, c(select.var, "num_ph
 
 #Using RMSE function from earlier we will calculate errors
 #Train RMSE
-rmse(fitted(criteria_fit), model_train$log_physicians)
+rmse(fitted(criteria_fit), model_train$num_physicians)
 
 #Test RMSE
-rmse(predict(criteria_fit, model_test), model_test$log_physicians)
+rmse(predict(criteria_fit, model_test), model_test$num_physicians)
 
-
-#rmse(fitted(cs1_model), train$log_physicians)
 
 
 ```
