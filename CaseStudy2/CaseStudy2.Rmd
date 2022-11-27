@@ -50,16 +50,24 @@ summary(model)
 # Define RMSE function
 rmse <- function(x,y) sqrt(mean((x-y)^2))
 
+# Train RMSE
+rmse(predict(model, train), train$Crime)
 
+# Test RMSE
+rmse(predict(model, test), test$Crime)
 ```
 
 ```{r}
+#make this example reproducible
+set.seed(425)
+
 train <- train %>%
   mutate(So = as.numeric(So))
+
 test <- test %>%
   mutate(So = as.numeric(So))
 
-pcrcv <- pcr(Crime~., data = train, validation = "CV", ncomp = 15)
+pcrcv <- pcr(Crime~., data = train, scale = TRUE, validation = "LOO", ncomp = 15)
 
 pcrCV <- RMSEP(pcrcv, estimate="CV")
 
@@ -67,22 +75,41 @@ plot(pcrCV)
 
 which.min(pcrCV$val) #8 components chosen by lowest CV RMSE
 
+# Training RMSE
+rmse(predict(pcrcv, train, ncom = 8), train$Crime)
+
 # Get test RMSE
-rmse(predict(pcrCV, test, ncom = 4), test$Crime) 
+rmse(predict(pcrcv, test, ncom = 8), test$Crime) 
 ```
 
 ```{r}
+#make this example reproducible
+set.seed(425)
+
 # Choosing LASSO because it performs model selection
 train.y <- train$Crime
 train.x <- as.matrix(train[,-16])
+
+test.y <- test$Crime
+test.x <- as.matrix(test[,-16])
 
 lasso <- lars(train.x, train.y)
 
 cv.ml <- cv.lars(train.x,train.y)
 
-svm <- cv.ml$index[which.min(cv.ml$cv)]
+which.min(cv.ml$cv)
 
+svm <- cv.ml$index[which.min(cv.ml$cv)]
+svm
 plot(lasso)
 
-predict(lasso, s=svm, type="coef", mode="fraction")$coef
+# Train MSE
+predlasso <- predict(lasso, train.x, s = svm, mode = "fraction")
+rmse(train$Crime, predlasso$fit)
+
+# Test MSE
+predlasso <- predict(lasso, test.x, s = svm, mode = "fraction")
+rmse(test$Crime, predlasso$fit)
+
+coef(lasso, s=svm, mode="fraction")
 ```
