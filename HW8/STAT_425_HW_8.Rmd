@@ -15,7 +15,7 @@ library(leaps)
 ##1) 
 ```{r 1}
 # Reading Transformed Data In From CS1
-read.csv("sub1_data")
+sub1_data<-read.csv("sub1_data")
 
 # Setting Seed
 set.seed(425)
@@ -175,9 +175,23 @@ select.var = colnames(rs$which)[rs$which[8,]]
 select.var = select.var[-1]
 
 
+
+#coding in selected indicator variable
+model_train$region4 <- ifelse(model_train$region == 4, 1, 0)
+model_test$region4 <- ifelse(model_test$region == 4, 1, 0)
+
 #fitting model
-##I beleive this is breaking due to the way our levels for region are set up. I'll take another look later unless someone else wants to.
-fit = lm(num_physicians ~ . , data=model_train[, c(select.var, "num_physicians")])
+criteria_fit <- lm(num_physicians ~ . , data=model_train[, c(select.var, "num_physicians")])
+
+#Using RMSE function from earlier we will calculate errors
+#Train RMSE
+rmse(fitted(criteria_fit), model_train$log_physicians)
+
+#Test RMSE
+rmse(predict(criteria_fit, model_test), model_test$log_physicians)
+
+
+#rmse(fitted(cs1_model), train$log_physicians)
 
 
 ```
