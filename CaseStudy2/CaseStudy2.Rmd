@@ -26,6 +26,16 @@ nrow(crime) == nrow(complete_rows)
 crime <- crime %>%
   mutate(So = as.factor(So))
 
+# Check Correlation
+cor(crime[,-2])
+
+# 3 highly correlated (Po1, Po2, and Wealth) 
+# 2 highly correlated (U1, U2)
+# 2 highly correlated (Ed, Ineq)
+# Keeping Po1, U2, and Ed because they are highest with target
+crimeNoCor <- crime %>%
+  dplyr::select(-Po2, -Wealth, -U1, -Ineq)
+
 #make this example reproducible
 set.seed(425)
 
@@ -33,17 +43,20 @@ set.seed(425)
 sample <- sample(c(TRUE, FALSE), nrow(crime), replace=TRUE, prob=c(0.7, 0.3))
 train <- crime[sample, ]
 test <- crime[!sample, ]
+
+trainNoCor <- crimeNoCor[sample, ]
+testNoCor <- crimeNoCor[!sample, ]
 ```
 
 ```{r}
 # Run leaps and bounds
-subset_selection = regsubsets(Crime~., data = train)
+subset_selection = regsubsets(Crime~., data = trainNoCor)
 
 rs = summary(subset_selection)
-rs$bic #Model 1
-rs #Po1 and Intercept Only Model
+rs$bic #Model 8
+rs 
 
-model <- lm(Crime~Po1, data = train)
+model <- lm(Crime~So+NW+Pop+LF+U2+Po1+Ed+Prob, data = trainNoCor)
 
 summary(model)
 
@@ -51,10 +64,10 @@ summary(model)
 rmse <- function(x,y) sqrt(mean((x-y)^2))
 
 # Train RMSE
-rmse(predict(model, train), train$Crime)
+rmse(predict(model, trainNoCor), trainNoCor$Crime)
 
 # Test RMSE
-rmse(predict(model, test), test$Crime)
+rmse(predict(model, testNoCor), testNoCor$Crime)
 ```
 
 ```{r}
@@ -86,12 +99,18 @@ rmse(predict(pcrcv, test, ncom = 8), test$Crime)
 #make this example reproducible
 set.seed(425)
 
+train <- trainNoCor %>%
+  mutate(So = as.numeric(So))
+
+test <- testNoCor %>%
+  mutate(So = as.numeric(So))
+
 # Choosing LASSO because it performs model selection
 train.y <- train$Crime
-train.x <- as.matrix(train[,-16])
+train.x <- as.matrix(train[,-12])
 
 test.y <- test$Crime
-test.x <- as.matrix(test[,-16])
+test.x <- as.matrix(test[,-12])
 
 lasso <- lars(train.x, train.y)
 
