@@ -12,7 +12,7 @@ library(leaps)
 ```
 
 
-##1) 
+## 1) 
 ```{r 1}
 # Reading Transformed Data In From CS1
 sub1_data<-read.csv("sub1_data")
@@ -26,8 +26,8 @@ train <- sub1_data[sample, ]
 test <- sub1_data[!sample, ]
 ```
 
-##2) 
-```{r 1}
+## 2) 
+```{r 2}
 #Creatting model using training data
 cs1_model<-lm(log_physicians ~ ., data=train)
 
@@ -43,9 +43,9 @@ rmse(predict(cs1_model, test), test$log_physicians)
 ```
 
 
-##3)
+## 3)
 
-```{r}
+```{r Set up for problem 3}
 ## We need to now look at the original untransformed data, with all variables
 
 ## We will reimport and redo some of the EDA steps we performed in Case Study 1
@@ -138,7 +138,7 @@ model_train <- model_data[sample, ]
 model_test <- model_data[!sample, ]
 ```
 
-```{r}
+```{r problem 3}
 ##Now we can actually do the selection
 
 regsubsets_selection=regsubsets(num_physicians~., data = model_train)
@@ -194,3 +194,8 @@ rmse(predict(criteria_fit, model_test), model_test$num_physicians)
 
 ```
 
+##4) Ridge
+
+##5) LASSO
+
+##6) PCR
