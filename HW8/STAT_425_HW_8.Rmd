@@ -12,7 +12,7 @@ library(leaps)
 ```
 
 
-## 1) 
+## 1) Train Test Split
 ```{r 1}
 # Reading Transformed Data In From CS1
 sub1_data<-read.csv("sub1_data")
@@ -193,9 +193,24 @@ rmse(predict(criteria_fit, model_test), model_test$num_physicians)
 
 
 ```
+```{r}
+
+model_train<- select (model_train,-c(region4))
+model_test<- select (model_test,-c(region4))
+
+```
 
 ##4) Ridge
 
 ##5) LASSO
 
 ##6) PCR
+```{r}
+library(pls)
+phys.pcr<-pcr(num_physicians ~ ., scale=TRUE, data=model_train,ncomp=14)
+summary(phys.pcr)
+rmse(predict(phys.pcr, ncom=6), model_train$num_physicians) 
+rmse(predict(phys.pcr, model_test, ncomp=6), model_test$num_physicians)
+
+```
+
