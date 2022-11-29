@@ -10,7 +10,7 @@ library(tidyverse)
 library(readr)
 library(leaps)
 ```
-
+##Jessie, I did a check and the code looks good to me! - Carrie
 
 ## 1) Train Test Split
 ```{r 1}
