@@ -195,12 +195,42 @@ rmse(predict(criteria_fit, model_test), model_test$num_physicians)
 ```
 ```{r}
 
-model_train<- select (model_train,-c(region4))
-model_test<- select (model_test,-c(region4))
+
+model_train$region2 <- ifelse(model_train$region == 2, 1, 0)
+model_test$region2 <- ifelse(model_test$region == 2, 1, 0)
+model_train$region3 <- ifelse(model_train$region == 3, 1, 0)
+model_test$region3 <- ifelse(model_test$region == 3, 1, 0)
+
+
+model_train <- data.frame(model_train %>%
+  dplyr::select(-region))
+model_test <- data.frame(model_test %>%
+  dplyr::select(-region))
 
 ```
 
 ##4) Ridge
+
+```{r}
+require (MASS)
+
+#standardize df
+phys_train <- model_train %>% mutate_all(~(scale(.) %>% as.vector))
+phys_test <- model_train %>% mutate_all(~(scale(.) %>% as.vector))
+
+phys.ridge <- lm.ridge(num_physicians~., model_train, lambda=seq(0, 10e-13, len=100))
+matplot(phys.ridge$lambda, coef(phys.ridge), type="l", xlab=expression(lambda), ylab=expression(hat(beta)), col=1)
+which.min(phys.ridge$GCV)
+abline(v=9.393939e-13 )
+
+
+phys.pred.train <- cbind(1, as.matrix(model_train[,-15]))%*% coef(phys.ridge)[8,]
+rmse(phys.pred.train, model_train$num_physicians)
+
+phys.pred.test <- cbind(1, as.matrix(model_test[,-15]))%*% coef(phys.ridge)[8,]
+rmse(phys.pred.test, model_test$num_physicians)
+```
+
 
 ##5) LASSO
 
@@ -208,8 +238,11 @@ model_test<- select (model_test,-c(region4))
 ```{r}
 library(pls)
 phys.pcr<-pcr(num_physicians ~ ., scale=TRUE, data=model_train,ncomp=14)
-summary(phys.pcr)
-rmse(predict(phys.pcr, ncom=6), model_train$num_physicians) 
+summary(phys.pcr) 
+
+#Based on the summary 6 components seems reasonable as it brings us to over 85% of the variation explained and each additional component seems to add less to that percentage.
+
+rmse(predict(phys.pcr, ncomp=6), model_train$num_physicians) 
 rmse(predict(phys.pcr, model_test, ncomp=6), model_test$num_physicians)
 
 ```
