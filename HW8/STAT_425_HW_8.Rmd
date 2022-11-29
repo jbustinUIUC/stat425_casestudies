@@ -237,6 +237,20 @@ rmse(phys.pred.test, model_test$num_physicians)
 ```{r}
 train.y<-model_train$num_physicians
 train.x<-as.matrix(model_train[,-5])
+library(lars)
+physlasso<-lars(train.x,train.y)
+cv.ml<-cv.lars(train.x,train.y)
+which.min(cv.ml$cv)
+svm<-cv.ml$index[which.min(cv.ml$cv)]
+svm
+
+testx<-as.matrix(model_test[,-5])
+
+predlasso <- predict(physlasso, train.x, s = svm, mode = "fraction")
+rmse(model_train$num_physicians, predlasso$fit)
+
+predlasso<-predict(physlasso, testx, s=svm, mode="fraction")
+rmse(model_train$num_physicians, predlasso$fit)
 ```
 
 
