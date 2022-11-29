@@ -224,15 +224,21 @@ which.min(phys.ridge$GCV)
 abline(v=9.393939e-13 )
 
 
-phys.pred.train <- cbind(1, as.matrix(model_train[,-15]))%*% coef(phys.ridge)[8,]
+phys.pred.train <- cbind(1, as.matrix(model_train[,-5]))%*% coef(phys.ridge)[8,]
 rmse(phys.pred.train, model_train$num_physicians)
 
-phys.pred.test <- cbind(1, as.matrix(model_test[,-15]))%*% coef(phys.ridge)[8,]
+phys.pred.test <- cbind(1, as.matrix(model_test[,-5]))%*% coef(phys.ridge)[8,]
 rmse(phys.pred.test, model_test$num_physicians)
 ```
 
 
 ##5) LASSO
+
+```{r}
+train.y<-model_train$num_physicians
+train.x<-as.matrix(model_train[,-5])
+```
+
 
 ##6) PCR
 ```{r}
