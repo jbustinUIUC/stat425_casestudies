@@ -1,6 +1,6 @@
 ---
 title: "HW 8"
-author: "Charlie, Carrie, Jessie"
+author: "Charlie Marcou, Carrie Mecca, Jessie Bustin"
 date: "`r Sys.Date()`"
 output: pdf_document
 ---
