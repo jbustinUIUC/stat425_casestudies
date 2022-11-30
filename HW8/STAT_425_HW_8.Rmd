@@ -9,13 +9,18 @@ output: pdf_document
 library(tidyverse)
 library(readr)
 library(leaps)
+library(lars)
+library(pls)
+library(MASS)
 ```
-##Jessie, I did a check and the code looks good to me! - Carrie
 
 ## 1) Train Test Split
 ```{r 1}
 # Reading Transformed Data In From CS1
 sub1_data<-read.csv("sub1_data")
+
+# Convert Region to factor level
+sub1_data <- sub1_data %>% mutate(region = as.factor(region))
 
 # Setting Seed
 set.seed(425)
@@ -24,11 +29,15 @@ set.seed(425)
 sample <- sample(c(TRUE, FALSE), nrow(sub1_data), replace=TRUE, prob=c(0.7, 0.3))
 train <- sub1_data[sample, ]
 test <- sub1_data[!sample, ]
+
+# Create Table for Results
+results <- data.frame(matrix(ncol = 12, nrow = 5))
+colnames(results) <- c("model", "trainRMSE", "testRMSE", "pop_18to24", "pop_over65", "poverty_rate", "unemployment_rate", "region", "log_pop", "log_bachelors", "log_percap_income", "log_hospital_beds")
 ```
 
 ## 2) 
 ```{r 2}
-#Creatting model using training data
+#Creating model using training data
 cs1_model<-lm(log_physicians ~ ., data=train)
 
 #Creating function to calculate RMSE
@@ -40,123 +49,32 @@ rmse(fitted(cs1_model), train$log_physicians)
 #Test MSE
 rmse(predict(cs1_model, test), test$log_physicians)
 
+results[1,1] <- "Full Model"
+results[1,2] <- rmse(fitted(cs1_model), train$log_physicians)
+results[1,3] <- rmse(predict(cs1_model, test), test$log_physicians)
+results[1,4:12] <- TRUE
 ```
 
 
 ## 3)
 
-```{r Set up for problem 3}
-## We need to now look at the original untransformed data, with all variables
-
-## We will reimport and redo some of the EDA steps we performed in Case Study 1
-data <- read_table("CDI.txt", col_names = FALSE)
-data <- data %>%
-  rename(id = X1,
-         county = X2,
-         state = X3,
-         land_area = X4,
-         total_pop = X5,
-         pop_18to24 = X6,
-         pop_over65 = X7,
-         num_physicians = X8,
-         num_hospital_beds = X9,
-         serious_crimes = X10,
-         highschool_rate = X11,
-         bachelors_rate = X12,
-         poverty_rate = X13,
-         unemployment_rate = X14,
-         per_capita_income = X15,
-         total_personal_income = X16,
-         region = X17)
-
-##
-# Check Variable Types
-str(data)
-
-# Check for NA's and INF's
-complete_rows <- data[complete.cases(data), ]
-nrow(data) == nrow(complete_rows)
-
-# Change region type because it is not numeric
-data <- data %>%
-  mutate(region = as.factor(region))
-
-# Check Variable Types
-str(data)
-
-# Check for NA's and INF's
-complete_rows <- data[complete.cases(data), ]
-nrow(data) == nrow(complete_rows)
-
-# Change region type because it is not numeric
-data <- data %>%
-  mutate(region = as.factor(region))
-
-# Check correlation for numeric features
-data %>%
-  dplyr::select(-id, -county, -state, -region) %>%
-  cor() %>%
-  round(digits = 2)
-
-# We have 4 variables highly correlated with total_pop so will transform them to per 100,000 people for 2 (one is our target so we will leave that alone)
-# Will drop total income because we already have per capita
-# We can also drop the ID column
-model_data <- data.frame(data %>%
-  dplyr::select(-id, -total_personal_income) %>%
-  mutate(hospital_beds_percap = num_hospital_beds / (total_pop / 100000),
-         serious_crimes_percap = serious_crimes / (total_pop / 100000)) %>%
-  dplyr::select(-num_hospital_beds, -serious_crimes))
-
-# Check county levels
-model_data %>%
-  group_by(county) %>%
-  summarise(counts = n()) %>%
-  summarise(min = min(counts), max(counts))
-
-# Drop Counties and check states
-model_data <- model_data %>%
-  dplyr::select(-county)
-model_data %>%
-  group_by(state) %>%
-  summarise(counts = n()) %>%
-  arrange(counts) %>%
-  head()
-
-# Drop States and we will use regions
-model_data <- model_data %>%
-  dplyr::select(-state)
-
-# Recheck correlation
-model_data %>%
-  dplyr::select(-region) %>%
-  cor() %>%
-  round(digits = 2)
-
-# Train Test Split
-sample <- sample(c(TRUE, FALSE), nrow(model_data), replace=TRUE, prob=c(0.7, 0.3))
-model_train <- model_data[sample, ]
-model_test <- model_data[!sample, ]
-```
-
 ```{r problem 3}
-##Now we can actually do the selection
-
-regsubsets_selection=regsubsets(num_physicians~., data = model_train)
+regsubsets_selection=regsubsets(log_physicians~., data = train)
 rs = summary(regsubsets_selection)
 
-# Adjusted-R2, 7th is best
+# Adjusted-R2, 8th is best
 rs$adjr2
 
-# BIC, 7th is best
-# Note that Leaps does not calculate AIC.
+# BIC, 2nd is best
+# Note that this is not the same as our calculated BIC
 rs$bic
 
 #We will compute AIC and BIC by hand
-n=dim(model_train)[1]
+n=dim(train)[1]
 msize = 1:8
 
 AIC = n*log(rs$rss/n) + 2*msize;
-which.min(AIC) #7 is best
+which.min(AIC) #8 is best
 BIC = n*log(rs$rss/n) + msize*log(n);
 which.min(BIC) #6 is best
 
@@ -167,40 +85,39 @@ plot(msize, AIC, xlab="No. of Parameters", ylab = "AIC");
 plot(msize, BIC, xlab="No. of Parameters", ylab = "BIC");
 
 #Determining which variables to keep based
-#Because both Adjusted R2 and AIC suggested 7 variables, we will choose 7 variables
-rs$which[7,]
+#Because both Adjusted R2 and AIC suggested 8 variables, we will choose 8 variables
+rs$which[8,]
 
-select.var = colnames(rs$which)[rs$which[7,]]
+select.var = colnames(rs$which)[rs$which[8,]]
 
 select.var = select.var[-1]
 
-
-
-#coding in selected indicator variable
-model_train$region4 <- ifelse(model_train$region == 4, 1, 0)
-model_test$region4 <- ifelse(model_test$region == 4, 1, 0)
-
 #fitting model
-criteria_fit <- lm(num_physicians ~ . , data=model_train[, c(select.var, "num_physicians")])
+criteria_fit <- lm(log_physicians ~ . , data=train[, c("pop_over65", "poverty_rate", "region", "log_pop", "log_bachelors", "log_physicians", "log_percap_income", "log_hospital_beds")])
 
 #Using RMSE function from earlier we will calculate errors
 #Train RMSE
-rmse(fitted(criteria_fit), model_train$num_physicians)
+rmse(fitted(criteria_fit), train$log_physicians)
 
 #Test RMSE
-rmse(predict(criteria_fit, model_test), model_test$num_physicians)
+rmse(predict(criteria_fit, test), test$log_physicians)
 
-
-
+results[2,1] <- "Citerion Selected Model"
+results[2,2] <- rmse(fitted(criteria_fit), train$log_physicians)
+results[2,3] <- rmse(predict(criteria_fit, test), test$log_physicians)
+results[2, c("pop_over65", "poverty_rate", "region", "log_pop", "log_bachelors", "log_percap_income", "log_hospital_beds")] <- TRUE
+results[2,c(4,7)] <- FALSE
 ```
 ```{r}
+model_train <- train
+model_test <- test
 
-
-model_train$region2 <- ifelse(model_train$region == 2, 1, 0)
-model_test$region2 <- ifelse(model_test$region == 2, 1, 0)
-model_train$region3 <- ifelse(model_train$region == 3, 1, 0)
-model_test$region3 <- ifelse(model_test$region == 3, 1, 0)
-
+model_train$region2 <- ifelse(train$region == 2, 1, 0)
+model_test$region2 <- ifelse(test$region == 2, 1, 0)
+model_train$region3 <- ifelse(train$region == 3, 1, 0)
+model_test$region3 <- ifelse(test$region == 3, 1, 0)
+model_train$region4 <- ifelse(train$region == 4, 1, 0)
+model_test$region4 <- ifelse(test$region == 4, 1, 0)
 
 model_train <- data.frame(model_train %>%
   dplyr::select(-region))
@@ -211,59 +128,76 @@ model_test <- data.frame(model_test %>%
 
 ##4) Ridge
 
-```{r}
-require (MASS)
-
+```{r problem 4}
 #standardize df
 phys_train <- model_train %>% mutate_all(~(scale(.) %>% as.vector))
-phys_test <- model_train %>% mutate_all(~(scale(.) %>% as.vector))
+phys_test <- model_test %>% mutate_all(~(scale(.) %>% as.vector))
 
-phys.ridge <- lm.ridge(num_physicians~., model_train, lambda=seq(0, 10e-13, len=100))
-matplot(phys.ridge$lambda, coef(phys.ridge), type="l", xlab=expression(lambda), ylab=expression(hat(beta)), col=1)
+phys.ridge <- lm.ridge(log_physicians~., phys_train, lambda=seq(0, 100, len=100))
 which.min(phys.ridge$GCV)
-abline(v=9.393939e-13 )
+matplot(phys.ridge$lambda, coef(phys.ridge), type="l", xlab=expression(lambda), ylab=expression(hat(beta)), col=1)
+abline(v=2.020202)
 
 
-phys.pred.train <- cbind(1, as.matrix(model_train[,-5]))%*% coef(phys.ridge)[8,]
-rmse(phys.pred.train, model_train$num_physicians)
 
-phys.pred.test <- cbind(1, as.matrix(model_test[,-5]))%*% coef(phys.ridge)[8,]
-rmse(phys.pred.test, model_test$num_physicians)
+phys.pred.train <- cbind(1, as.matrix(phys_train[,-5]))%*% coef(phys.ridge)[8,]
+
+rmse(phys.pred.train, phys_train$log_physicians)
+
+phys.pred.test <- cbind(1, as.matrix(phys_test[,-5]))%*% coef(phys.ridge)[8,]
+
+rmse(phys.pred.test, phys_test$log_physicians)
+
+results[3,1] <- "Ridge Model"
+results[3,2] <- rmse(phys.pred.train, phys_train$log_physicians)
+results[3,3] <- rmse(phys.pred.test, phys_test$log_physicians)
+results[3,4:12] <- TRUE
 ```
 
 
 ##5) LASSO
 
-```{r}
-train.y<-model_train$num_physicians
+```{r problem 5}
+train.y<-model_train$log_physicians
 train.x<-as.matrix(model_train[,-5])
-library(lars)
+
+test.x<-as.matrix(model_test[,-5])
+
 physlasso<-lars(train.x,train.y)
 cv.ml<-cv.lars(train.x,train.y)
 which.min(cv.ml$cv)
 svm<-cv.ml$index[which.min(cv.ml$cv)]
 svm
 
-testx<-as.matrix(model_test[,-5])
+predlasso_train <- predict(physlasso, train.x, s = svm, mode = "fraction")
+rmse(model_train$log_physicians, predlasso_train$fit)
 
-predlasso <- predict(physlasso, train.x, s = svm, mode = "fraction")
-rmse(model_train$num_physicians, predlasso$fit)
+predlasso_test<-predict(physlasso, test.x, s=svm, mode="fraction")
+rmse(predlasso_test$fit, model_test$log_physicians)
 
-predlasso<-predict(physlasso, testx, s=svm, mode="fraction")
-rmse(model_train$num_physicians, predlasso$fit)
+coef(physlasso, s=svm, mode="fraction")
+
+results[4,1] <- "LASSO Model"
+results[4,2] <- rmse(model_train$log_physicians, predlasso_train$fit)
+results[4,3] <- rmse(predlasso_test$fit, model_test$log_physicians)
+results[4,4:12] <- TRUE
 ```
 
 
 ##6) PCR
-```{r}
-library(pls)
-phys.pcr<-pcr(num_physicians ~ ., scale=TRUE, data=model_train,ncomp=14)
+```{r problem 6}
+phys.pcr<-pcr(log_physicians ~ ., scale=TRUE, data=model_train,ncomp=11)
 summary(phys.pcr) 
 
 #Based on the summary 6 components seems reasonable as it brings us to over 85% of the variation explained and each additional component seems to add less to that percentage.
 
-rmse(predict(phys.pcr, ncomp=6), model_train$num_physicians) 
-rmse(predict(phys.pcr, model_test, ncomp=6), model_test$num_physicians)
+rmse(predict(phys.pcr, ncomp=6), model_train$log_physicians) 
+rmse(predict(phys.pcr, model_test, ncomp=6), model_test$log_physicians)
 
+results[5,1] <- "Principal Componant Regression"
+results[5,2] <- rmse(predict(phys.pcr, ncomp=6), model_train$log_physicians)
+results[5,3] <- rmse(predict(phys.pcr, model_test, ncomp=6), model_test$log_physicians)
+results
 ```
 
+Above is a table with the summary of our analysis.  Our original model performed relatively well.  We attribute this to the feature engineering and selected we completed prior to completing case study 1.  We either transformed or removed highly correlated variables.  The criteria selected model using leaps and bounds removed 2 variables and the RMSE increased slightly. Chosing between these 2 models would come down to weighing model complexity over performance.  For the penalized regression models, ridge performed exceptionally well.  Overall, we would select the Ridge model as our ideal model due to the low train and test RMSE and that there isn't not a large difference in train verses test RMSE.  We were not surprised that LASSO returned the full model after tuning lambda.  Finally, the PCR model was the worst of the group.  We feel that it might have performed better if we had not done the feature selection and engineering in our EDA for case study 1.  In conclusion, we were satisfied with our full model but prefer the Ridge model as the best model.
