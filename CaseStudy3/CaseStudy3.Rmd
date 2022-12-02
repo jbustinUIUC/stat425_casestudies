@@ -1,0 +1,13 @@
+---
+title: "Stat 425 Final Case Study"
+author: "Charlie, Carrie, Jessie"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r}
+library(readr)
+
+bublewrap <- read.csv("bubblewrap.csv")
+```
+
