@@ -15,6 +15,11 @@ bubblewrap <- read.csv("bubblewrap.csv")
 # Remove Runs 2,3, and 5 for Replication 2
 # Rows 11, 12, 17 
 bubblewrap <- bubblewrap[-c(11, 12, 17), ]
+
+# Convert to factors
+bubblewrap <- bubblewrap %>%
+  mutate(loading = as.factor(loading)) %>%
+  mutate(line_speed = as.factor(line_speed))
 ```
 
 ```{r}

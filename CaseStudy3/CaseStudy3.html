@@ -385,7 +385,12 @@ bubblewrap &lt;- read.csv(&quot;bubblewrap.csv&quot;)
 
 # Remove Runs 2,3, and 5 for Replication 2
 # Rows 11, 12, 17 
-bubblewrap &lt;- bubblewrap[-c(11, 12, 17), ]</code></pre>
+bubblewrap &lt;- bubblewrap[-c(11, 12, 17), ]
+
+# Convert to factors
+bubblewrap &lt;- bubblewrap %&gt;%
+  mutate(loading = as.factor(loading)) %&gt;%
+  mutate(line_speed = as.factor(line_speed))</code></pre>
 <pre class="r"><code># Checking Full Model vs Additive Model using partial F test since we have an unbalanced ANOVA
 full.model = lm(rate~line_speed*loading, bubblewrap)
 additive.model = lm(rate~line_speed+loading, bubblewrap)
@@ -395,8 +400,8 @@ anova(additive.model, full.model)</code></pre>
 ## Model 1: rate ~ line_speed + loading
 ## Model 2: rate ~ line_speed * loading
 ##   Res.Df   RSS Df Sum of Sq      F Pr(&gt;F)
-## 1     21 54218                           
-## 2     20 54199  1    19.382 0.0072 0.9334</code></pre>
+## 1     19 31370                           
+## 2     15 26801  4    4568.4 0.6392 0.6426</code></pre>
 <pre class="r"><code># Fail To reject the null so the interaction term is not statistically significant and we select the additive model</code></pre>
 <pre class="r"><code># Checking Main Effects
 line_speed.model = lm(rate~line_speed, bubblewrap)
@@ -407,9 +412,9 @@ anova(line_speed.model, additive.model)</code></pre>
 ## 
 ## Model 1: rate ~ line_speed
 ## Model 2: rate ~ line_speed + loading
-##   Res.Df   RSS Df Sum of Sq      F  Pr(&gt;F)  
-## 1     22 64894                              
-## 2     21 54218  1     10675 4.1347 0.05484 .
+##   Res.Df   RSS Df Sum of Sq      F  Pr(&gt;F)   
+## 1     21 53993                               
+## 2     19 31370  2     22623 6.8513 0.00575 **
 ## ---
 ## Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1</code></pre>
 <pre class="r"><code>anova(loading.model, additive.model)</code></pre>
@@ -418,8 +423,8 @@ anova(line_speed.model, additive.model)</code></pre>
 ## Model 1: rate ~ loading
 ## Model 2: rate ~ line_speed + loading
 ##   Res.Df   RSS Df Sum of Sq      F Pr(&gt;F)
-## 1     22 54336                           
-## 2     21 54218  1     117.7 0.0456  0.833</code></pre>
+## 1     21 39967                           
+## 2     19 31370  2      8597 2.6035 0.1002</code></pre>
 <pre class="r"><code># We reject the line_speed.model at alpha = 0.1
 # We fail to reject the loading.model
 # Choosing the Loading Model</code></pre>
@@ -448,10 +453,10 @@ bubblewrap %&gt;%
   summarize(mean_rate = mean(rate), variance = var(rate))</code></pre>
 <pre><code>## # A tibble: 3 × 3
 ##   loading mean_rate variance
-##     &lt;int&gt;     &lt;dbl&gt;    &lt;dbl&gt;
-## 1       0      347.    1693.
-## 2       2      319.    3729.
-## 3       4      394.     463.</code></pre>
+##   &lt;fct&gt;       &lt;dbl&gt;    &lt;dbl&gt;
+## 1 0            347.    1693.
+## 2 2            319.    3729.
+## 3 4            394.     463.</code></pre>
 <pre class="r"><code># single 95% CI for difference between loadings 2 and 4
 
 # Need to test for equal variance between the groups but guessing not
