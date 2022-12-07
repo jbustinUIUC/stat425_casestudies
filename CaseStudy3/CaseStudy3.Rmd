@@ -6,8 +6,73 @@ output: html_document
 ---
 
 ```{r}
-library(readr)
+# Load libraries
+library(tidyverse)
 
-bublewrap <- read.csv("bubblewrap.csv")
+# Load Data
+bubblewrap <- read.csv("bubblewrap.csv")
+
+# Remove Runs 2,3, and 5 for Replication 2
+# Rows 11, 12, 17 
+bubblewrap <- bubblewrap[-c(11, 12, 17), ]
+```
+
+```{r}
+# Checking Full Model vs Additive Model using partial F test since we have an unbalanced ANOVA
+full.model = lm(rate~line_speed*loading, bubblewrap)
+additive.model = lm(rate~line_speed+loading, bubblewrap)
+anova(additive.model, full.model)
+
+# Fail To reject the null so the interaction term is not statistically significant and we select the additive model
+```
+```{r}
+# Checking Main Effects
+line_speed.model = lm(rate~line_speed, bubblewrap)
+loading.model = lm(rate~loading, bubblewrap)
+
+anova(line_speed.model, additive.model)
+anova(loading.model, additive.model)
+
+# We reject the line_speed.model at alpha = 0.1
+# We fail to reject the loading.model
+# Choosing the Loading Model
+```
+
+```{r}
+# Pairwise Comparisons
+pairwise.t.test(bubblewrap$rate, bubblewrap$loading, p.adjust.method = "bonferroni")
+
+#Loadings 2 and 4 are different
+```
+```{r}
+# Little bit of EDA
+bubblewrap %>% 
+  mutate(loading = as.factor(loading)) %>%
+  ggplot(aes(x = loading, y = rate)) +
+  geom_boxplot() +
+  ggtitle("Rate Distributions By Loading")
+
+bubblewrap %>%
+  group_by(loading) %>%
+  summarize(mean_rate = mean(rate), variance = var(rate))
+
+
+# single 95% CI for difference between loadings 2 and 4
+
+# Need to test for equal variance between the groups but guessing not
+# Using Fischer's F Test
+bubblewrap2 <- bubblewrap %>%
+  filter(loading == 2)
+
+bubblewrap4 <- bubblewrap %>%
+  filter(loading == 4)
+
+var.test(bubblewrap2$rate, bubblewrap4$rate)
+
+# Yep, unequal variance so using a Welch's t-interval
+t.test(bubblewrap2$rate, bubblewrap4$rate, var.equal = FALSE)
+
+# 95% CI for a difference in means between loading 2 and 4 [-127.58643, -23.80246]
+# We chose loading 4 as the highest production rate and line_speed is not significant
 ```
 
