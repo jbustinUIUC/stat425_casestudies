@@ -1,6 +1,6 @@
 ---
 title: "Stat 425 Final Case Study"
-author: "Charlie, Carrie, Jessie"
+author: "Charlie Marcou, Carrie Mecca, Jessie Bustin"
 date: "`r Sys.Date()`"
 output: html_document
 ---
@@ -79,5 +79,39 @@ t.test(bubblewrap2$rate, bubblewrap4$rate, var.equal = FALSE)
 
 # 95% CI for a difference in means between loading 2 and 4 [-127.58643, -23.80246]
 # We chose loading 4 as the highest production rate and line_speed is not significant
+```
+
+```{r model assumptions}
+
+## Checking model assumptions
+par(mfrow=c(1,2))
+qqnorm(loading.model$res)
+plot(loading.model$fitted, loading.model$res, xlab="Fitted", ylab="Residuals")
+
+## We can note that the plot to check constant variance on the right, has a funneling inwards as we progress along the x axis. Additionally, based on the Q-Q plot normality seems light it might be questionable.
+
+```
+```{r}
+## Let's check if Box-Cox helps us here.
+library(MASS)
+
+
+loading.transformation=boxcox(loading.model,lambda=seq(-2,2, length=400))
+lambda <- loading.transformation$x[which.max(loading.transformation$y)]
+lambda
+
+## Box-Cox would likely suggest a higher number if it was not constrained between -2 and 2, but because in practice it is only reccomended to use the technique within this range, we will stick with a lambda of 2
+
+bubblewrap.transformed <- bubblewrap %>% 
+    mutate(rate = (rate^lambda - 1)/ lambda)
+
+transformed.loading.model = lm(rate~loading, bubblewrap.transformed)
+
+## Rechecking model assumptions
+par(mfrow=c(1,2))
+qqnorm(transformed.loading.model$res)
+plot(transformed.loading.model$fitted, transformed.loading.model$res, xlab="Fitted", ylab="Residuals")
+
+## The Box-Cox transformation did not seem to help much
 ```
 
