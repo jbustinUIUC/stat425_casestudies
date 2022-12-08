@@ -116,6 +116,25 @@ par(mfrow=c(1,2))
 qqnorm(transformed.loading.model$res)
 plot(transformed.loading.model$fitted, transformed.loading.model$res, xlab="Fitted", ylab="Residuals")
 
-## The Box-Cox transformation did not seem to help much
+## The Box-Cox transformation seems to perform slightly better, but does not make a huge change. The assumption seems to be unstatisfied still
+```
+```{r}
+## Let us check our assumptions on other possible models we examined earlier.
+
+
+## The Full Model has a problem with constant variance funneling in as well
+par(mfrow=c(1,2))
+qqnorm(full.model$res)
+plot(full.model$fitted, full.model$res, xlab="Fitted", ylab="Residuals")
+
+## The additive model also has a constant variance problem
+par(mfrow=c(1,2))
+qqnorm(additive.model$res)
+plot(additive.model$fitted, additive.model$res, xlab="Fitted", ylab="Residuals")
+
+## The line speed model also has a constant variance problem
+par(mfrow=c(1,2))
+qqnorm(line_speed.model$res)
+plot(line_speed.model$fitted, line_speed.model$res, xlab="Fitted", ylab="Residuals")
 ```
 
