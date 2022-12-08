@@ -90,6 +90,10 @@ plot(loading.model$fitted, loading.model$res, xlab="Fitted", ylab="Residuals")
 
 ## We can note that the plot to check constant variance on the right, has a funneling inwards as we progress along the x axis. Additionally, based on the Q-Q plot normality seems light it might be questionable.
 
+##Double checking normality with the shapiro-wilks test, we can see that using an alpha of .05, we fail to reject the null that the normality assumption is satistfied.
+shapiro.test(loading.model$residuals)
+
+
 ```
 ```{r}
 ## Let's check if Box-Cox helps us here.
