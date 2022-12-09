@@ -80,7 +80,6 @@ t.test(bubblewrap2$rate, bubblewrap4$rate, var.equal = FALSE)
 # 95% CI for a difference in means between loading 2 and 4 [-127.58643, -23.80246]
 # We chose loading 4 as the highest production rate and line_speed is not significant
 ```
-
 ```{r model assumptions}
 
 ## Checking model assumptions
@@ -95,6 +94,7 @@ shapiro.test(loading.model$residuals)
 
 
 ```
+
 ```{r}
 ## Let's check if Box-Cox helps us here.
 library(MASS)
@@ -118,6 +118,7 @@ plot(transformed.loading.model$fitted, transformed.loading.model$res, xlab="Fitt
 
 ## The Box-Cox transformation seems to perform slightly better, but does not make a huge change. The assumption seems to be unstatisfied still
 ```
+
 ```{r}
 ## Let us check our assumptions on other possible models we examined earlier.
 
@@ -137,4 +138,42 @@ par(mfrow=c(1,2))
 qqnorm(line_speed.model$res)
 plot(line_speed.model$fitted, line_speed.model$res, xlab="Fitted", ylab="Residuals")
 ```
+## WLS
+```{r}
+resids <- residuals(loading.model)
+loading.resid <- lm(resids^2 ~ bubblewrap$loading)
+summary(loading.resid)
+```
+```{r compute weights}
+fitted = loading.resid$fitted.values
+newweights= 1/fitted
+```
 
+```{r refit model with weights}
+loading.weights = lm(rate~loading, data=bubblewrap, weights=newweights)
+summary(loading.weights)
+
+```
+
+```{r}
+#a bit lower except for loading 2 
+vcov(loading.model)[,2]
+vcov(loading.weights)[,2]
+```
+
+```{r iterate }
+fitted.2 = loading.weights$fitted.values
+newweights.2= 1/fitted.2
+
+loading.weights.2 = lm(rate~loading, data=bubblewrap, weights=newweights.2)
+summary(loading.weights.2)
+
+#exactly the same coefficients so stop iterating
+```
+
+```{r}
+par(mfrow=c(1,2))
+qqnorm(loading.weights.2$res)
+plot(loading.weights.2$fitted, loading.weights.2$res, xlab="Fitted", ylab="Residuals")
+
+```
